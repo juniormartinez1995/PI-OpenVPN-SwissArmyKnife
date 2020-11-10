@@ -1,6 +1,12 @@
-
 #!/bin/bash
 
+
+dialog                                         \
+   --title 'Aguarde'                           \
+   --infobox '\nIniciando a instalação, aguarde um momento...'  \
+   0 0
+
+sleep 2
 set -e
 
 if [[ $EUID -ne 0 ]]; then
@@ -13,7 +19,8 @@ if [[ $(uname -r | cut -d "." -f 1) -eq 2 ]]; then
         exit
 fi
 
-#Checagem de qual distribuição do linux que está sendo utilizada para rodar o script
+# Detect OS
+# $os_version variables aren't always in use, but are kept here for convenience
 if grep -qs "ubuntu" /etc/os-release; then
         os="ubuntu"
         os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
@@ -31,12 +38,27 @@ elif [[ -e /etc/fedora-release ]]; then
         os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
         group_name="nobody"
 else
-        echo "A distribuição do linux que está executando este instalador não é suportada. Apenas Ubuntu, Debian, CentOS e Fedora"
+        echo "This installer seems to be running on an unsupported distribution.
+Supported distributions are Ubuntu, Debian, CentOS, and Fedora."
         exit
 fi
 
-echo "Sistema utilizado é o $os $os_version"
+dialog                                            \
+   --title 'Sistema operacional'                             \
+   --msgbox "Você está utilizando um sistema $os $os_version."  \
+   6 40
 
+start_menu () {
+
+dialog                                       \
+     --title 'Perfil'                          \
+     --menu 'Escolha o que deseja fazer na instalação:'  \
+     0 0 0                                     \
+     Instalar_VPN       'Instala e configura o serviço VPN'                    \
+     Adicionar_Cliente    'Adiciona clientes a VPN já existente'               \
+     Deletar_Cliente  'Deleta o cliente e suas credenciais do servidor'
+
+}
 
 add_new_cliente () {
         {
@@ -57,3 +79,4 @@ add_new_cliente () {
 
 }
 
+start_menu
