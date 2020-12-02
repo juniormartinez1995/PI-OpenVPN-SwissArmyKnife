@@ -89,4 +89,16 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
         fi
         #echo $public_ip
 
+        choice=$( dialog --stdout --menu 'Protocolo' 0 0 0 1 UDP 2 TCP)
+
+        clear
+        case $choice in
+                1)
+                        protocol=udp
+                        ;;
+                2)
+                        protocol=tcp
+                        ;;
+        esac
+
 fi
