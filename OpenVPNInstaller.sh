@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 
@@ -14,13 +15,8 @@ if [[ $EUID -ne 0 ]]; then
         exit 1
 fi
 
-if [[ $(uname -r | cut -d "." -f 1) -eq 2 ]]; then
-        echo "O sistema está utilizando um kernel antigo, que é incompatível com este instalador"
-        exit
-fi
 
-# Detect OS
-# $os_version variables aren't always in use, but are kept here for convenience
+# Checagem do sistema operacional sendo utilizado
 if grep -qs "ubuntu" /etc/os-release; then
         os="ubuntu"
         os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
@@ -38,8 +34,7 @@ elif [[ -e /etc/fedora-release ]]; then
         os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
         group_name="nobody"
 else
-        echo "This installer seems to be running on an unsupported distribution.
-Supported distributions are Ubuntu, Debian, CentOS, and Fedora."
+        echo "Este script está rodando numa versão não suportada"
         exit
 fi
 
@@ -48,7 +43,7 @@ dialog                                            \
    --msgbox "Você está utilizando um sistema $os $os_version."  \
    6 40
 
-start_menu () {
+start_menu_installed () {
 
 dialog                                       \
      --title 'Perfil'                          \
@@ -79,4 +74,19 @@ add_new_cliente () {
 
 }
 
-start_menu
+if [[ ! -e /etc/openvpn/server/server.conf ]]; then
+        clear
+        ip=$(ip -4 addr | sed -ne 's|^.* inet \([^/]*\)/.* scope global.*$|\1|p' | head -1)
+
+        if echo "$ip" | grep -qE '^(10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.|192\.168)'; then
+                echo 'to aqui'
+                public_ip=$(curl -s https://api.ipify.org)
+        fi
+
+
+        if [[ $(ip -6 addr | grep -c 'inet6 [23]') -eq 1 ]]; then
+                ip6=$(ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}')
+        fi
+        #echo $public_ip
+
+fi
