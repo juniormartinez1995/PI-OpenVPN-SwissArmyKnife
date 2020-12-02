@@ -55,6 +55,32 @@ dialog                                       \
 
 }
 
+set_dns () {
+        case "$1" in
+
+        2)
+		echo 'push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/server/server.conf
+		echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/server/server.conf
+	;;
+	3)
+		echo 'push "dhcp-option DNS 1.1.1.1"' >> /etc/openvpn/server/server.conf
+		echo 'push "dhcp-option DNS 1.0.0.1"' >> /etc/openvpn/server/server.conf
+	;;
+	4)
+		echo 'push "dhcp-option DNS 208.67.222.222"' >> /etc/openvpn/server/server.conf
+		echo 'push "dhcp-option DNS 208.67.220.220"' >> /etc/openvpn/server/server.conf
+	;;
+	5)
+		echo 'push "dhcp-option DNS 9.9.9.9"' >> /etc/openvpn/server/server.conf
+		echo 'push "dhcp-option DNS 149.112.112.112"' >> /etc/openvpn/server/server.conf
+	;;
+	6)
+		echo 'push "dhcp-option DNS 94.140.14.14"' >> /etc/openvpn/server/server.conf
+		echo 'push "dhcp-option DNS 94.140.15.15"' >> /etc/openvpn/server/server.conf
+	;;
+
+}
+
 add_new_cliente () {
         {
                 cat /etc/openvpn/server/cliente-common.txt
