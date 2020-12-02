@@ -101,4 +101,13 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
                         ;;
         esac
 
+        clear
+
+
+        port=$( dialog --stdout --inputbox 'Porta [1194]:' 0 0 )
+
+        if [ -z $port ]; then
+                port="1194"
+        fi
+
 fi
