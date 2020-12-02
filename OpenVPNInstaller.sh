@@ -110,4 +110,9 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
                 port="1194"
         fi
 
+
+        dns=$( dialog --stdout --menu 'Servidor de DNS:' 0 0 0 1 "Current system resolvers" 2 Google 3 "1.1.1.1" 4 OpenDNS 5 Quad9 6 AdGuard)
+        clear
+
+
 fi
