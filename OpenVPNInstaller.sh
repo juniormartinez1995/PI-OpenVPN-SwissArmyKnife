@@ -25,14 +25,6 @@ elif [[ -e /etc/debian_version ]]; then
         os="debian"
         os_version=$(grep -oE '[0-9]+' /etc/debian_version | head -1)
         group_name="nogroup"
-elif [[ -e /etc/centos-release ]]; then
-        os="centos"
-        os_version=$(grep -oE '[0-9]+' /etc/centos-release | head -1)
-        group_name="nobody"
-elif [[ -e /etc/fedora-release ]]; then
-        os="fedora"
-        os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
-        group_name="nobody"
 else
         echo "Este script está rodando numa versão não suportada"
         exit
