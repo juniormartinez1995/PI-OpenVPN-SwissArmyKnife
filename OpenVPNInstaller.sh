@@ -151,6 +151,8 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
                 dns=$( dialog --stdout --menu 'Servidor de DNS:' 0 0 0 1 "Current system resolvers" 2 Google 3 "1.1.1.1" 4 OpenDNS 5 Quad9 6 AdGuard)
         clear
 
+        client=$( dialog --stdout --inputbox 'Digite o nome do cliente:' 0 0 )
+
         dialog --yesno 'Deseja começar a instalação?' 0 0
 
 
@@ -168,5 +170,17 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
                 clear
                 exit
         fi
+
+
+        mkdir -p /etc/openvpn/server/easy-rsa/
+        { wget -q0- 'https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.8/EasyRSA-3.0.8.tgz' 2>/devl/null || curl -sL 'https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.8/EasyRSA-3.0.8.tgz' ; } | tar xz -C /etc/openvpn/server/easy-rsa/ --strip-components 1
+        chow -R root:root /etc/openvpn/server/easy-rsa/
+        cd /etc/openvpn/server/easy-rsa/
+
+        ./easyrsa init-pki
+	./easyrsa --batch build-ca nopass
+	EASYRSA_CERT_EXPIRE=3650 ./easyrsa build-server-full server nopass
+	EASYRSA_CERT_EXPIRE=3650 ./easyrsa build-client-full "$client" nopass
+	EASYRSA_CRL_DAYS=3650 ./easyrsa gen-crl
 
 fi
