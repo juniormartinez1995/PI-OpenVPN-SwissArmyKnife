@@ -113,6 +113,24 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
 
         dns=$( dialog --stdout --menu 'Servidor de DNS:' 0 0 0 1 "Current system resolvers" 2 Google 3 "1.1.1.1" 4 OpenDNS 5 Quad9 6 AdGuard)
         clear
+        dialog --yesno 'Deseja começar a instalação?' 0 0
+
+
+        if [[ "os" = "ubuntu" || "os" = "debian" ]]; then
+                firewall="iptables"
+        fi
+
+        if [ $? = 0 ]; then
+                if [[ "$os" = "ubuntu" || "os" = "debian" ]]; then
+                        clear
+                        apt-get update
+                        apt-get install -y openvpn openssl ca-certificates $firewall
+                fi
+        else
+                clear
+                exit
+        fi
+
 
 
 fi
