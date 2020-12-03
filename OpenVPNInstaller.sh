@@ -99,6 +99,33 @@ new_client () {
         } > ~/"$client".ovpn
 }
 
+remove_open_vpn () {
+        dialog --yesno 'Deseja realmente remover o OpenVPN?' 0 0
+
+        if [ $? = 0 ]; then
+                PORT=$(grep '^port ' /etc/openvpn/server/server.conf | cut -d " " -f 2)
+                PROTOCOL=$(grep '^proto ' /etc/openvpn/server/server.conf | cut -d " " -f 2)
+
+                systemctl disable openvpn@server
+                systemctl stop openvpn@server
+
+                systemctl disable --now openvpn-iptables.service
+                rm -f /etc/systemd/system/openvpn-iptables.service
+
+                rm -rf /etc/openvpn/server
+                rm -f /etc/systemd/system/openvpn-server@server.service.d/disable-limitnproc.conf
+                rm -f /etc/sysctl.d/30-openvpn-forward.conf
+
+                apt-get remove --purge -y openvpn
+
+                dialog --msgbox 'OpenVPN removido com sucesso' 5 40
+
+                clear
+                exit
+
+        fi
+}
+
 
 if [[ ! -e /etc/openvpn/server/server.conf ]]; then
         clear
@@ -140,8 +167,8 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
         if [ -z $client ]; then
                 client="client"
         fi
-        echo $client
-        sleep 10
+        #echo $client
+        #sleep 10
 
         dialog --yesno 'Deseja começar a instalação?' 0 0
 
@@ -276,7 +303,18 @@ verb 3" > /etc/openvpn/server/client-common.txt
         new_client
 
 else
-        echo "Tratar para quando o VPN ja tiver sido instalado"
+        mChoice=$( dialog --stdout --menu 'Menu principal' 0 0 0 1 "Adicionar cliente" 2 "Remover cliente" 3 "Remover OpenVPN")
 
+        case $mChoice in
+                1)
+                        echo "add cliente"
+                        ;;
+                2)
+                        echo "remover cliente"
+                        ;;
+                3)
+                        remove_open_vpn
+                        ;;
+        esac
 
 fi
