@@ -1,15 +1,12 @@
 #!/bin/bash
-
-dialog                                         \
-   --title 'Aguarde'                           \
-   --infobox '\nIniciando a instalação, aguarde um momento...'  \
-   0 0
-
-#sleep 2
 set -e
 
 if [[ $EUID -ne 0 ]]; then
-        echo "Voce deve ser administrador do sistema" 1>&2
+                dialog                                            \
+   --title 'AVISO'                             \
+   --msgbox "Você deve executar esse script como administrador do sistema"  \
+   6 40
+        exit
         exit 1
 fi
 
@@ -24,7 +21,10 @@ elif [[ -e /etc/debian_version ]]; then
         os_version=$(grep -oE '[0-9]+' /etc/debian_version | head -1)
         group_name="nogroup"
 else
-        echo "Este script está rodando numa versão não suportada"
+        dialog                                            \
+   --title 'AVISO'                             \
+   --msgbox "Este script não é compatível com o seu sistema operacional"  \
+   6 40
         exit
 fi
 
@@ -32,18 +32,6 @@ dialog                                            \
    --title 'Sistema operacional'                             \
    --msgbox "Você está utilizando um sistema $os $os_version."  \
    6 40
-
-start_menu_installed () {
-
-dialog                                       \
-     --title 'Perfil'                          \
-     --menu 'Escolha o que deseja fazer na instalação:'  \
-     0 0 0                                     \
-     Remover programa       'Desinstala o serviço OpenVPN'                    \
-     Adicionar_Cliente    'Adiciona clientes a VPN já existente'               \
-     Deletar_Cliente  'Deleta o cliente e suas credenciais do servidor'
-
-}
 
 
 set_protocol () {
