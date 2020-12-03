@@ -123,11 +123,6 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
                 #ip=$public_ip
         fi
 
-
-        if [[ $(ip -6 addr | grep -c 'inet6 [23]') -eq 1 ]]; then
-                ip6=$(ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}')
-        fi
-
         choice=$( dialog --stdout --menu 'Protocolo' 0 0 0 1 UDP 2 TCP)
 
         clear
@@ -244,20 +239,13 @@ crl-verify crl.pem" >> /etc/openvpn/server/server.conf
 
         echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/30-openvpn-forward.conf
         echo 1 > /proc/sys/net/ipv4/ip_forward
-        if [[ -n "$ip6" ]]; then
-                # Habilitando o net.ipv6.conf.all.forwarding para o sistema
-                echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.d/30-openvpn-forward.conf
-                echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
-        fi
 
         #Serviço para as regras de iptables
         iptables_path=$(command -v iptables)
-        ip6tables_path=$(command -v ip6tables)
 
 
         if [[ $(systemd-detect-virt) == "openvz" ]] && readlink -f "$(command -v iptables)" | grep -q "nft" && hash iptables-legacy 2>/dev/null; then
                 iptables_path=$(command -v iptables-legacy)
-                ip6tables_path=$(command -v ip6tables-legacy)
         fi
         echo "[Unit]
 Before=network.target
@@ -271,15 +259,7 @@ ExecStop=$iptables_path -t nat -D POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j
 ExecStop=$iptables_path -D INPUT -p $protocol --dport $port -j ACCEPT
 ExecStop=$iptables_path -D FORWARD -s 10.8.0.0/24 -j ACCEPT
 ExecStop=$iptables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" > /etc/systemd/system/openvpn-iptables.service
-                if [[ -n "$ip6" ]]; then
-                        echo "ExecStart=$ip6tables_path -t nat -A POSTROUTING -s fddd:1194:1194:1194::/64 ! -d fddd:1194:1194:1194::/64 -j SNAT --to $ip6
-ExecStart=$ip6tables_path -I FORWARD -s fddd:1194:1194:1194::/64 -j ACCEPT
-ExecStart=$ip6tables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
-ExecStop=$ip6tables_path -t nat -D POSTROUTING -s fddd:1194:1194:1194::/64 ! -d fddd:1194:1194:1194::/64 -j SNAT --to $ip6
-ExecStop=$ip6tables_path -D FORWARD -s fddd:1194:1194:1194::/64 -j ACCEPT
-ExecStop=$ip6tables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" >> /etc/systemd/system/openvpn-iptables.service
-                fi
-                echo "RemainAfterExit=yes
+         echo "RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target" >> /etc/systemd/system/openvpn-iptables.service
                 systemctl enable --now openvpn-iptables.service
@@ -312,5 +292,3 @@ else
 
 
 fi
-
-
