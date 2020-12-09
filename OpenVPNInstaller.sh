@@ -55,7 +55,6 @@ set_dns () {
                         echo "push \"dhcp-option DNS $line\"" >> /etc/openvpn/server/server.conf
                 done
                 ;;
-
         2)
                 echo 'push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/server/server.conf
                 echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/server/server.conf
@@ -99,24 +98,58 @@ new_client () {
         } > ~/"$client".ovpn
 }
 
+add_iptables_rules () {
+    #Permitir conexão TCP na porta Openvpn
+    iptables -A INPUT -i eth0 -m state --state NEW -p udp --dport 1194 -j ACCEPT
+    #Permitir conexões da interface TUN no OpenVPN server
+    iptables -A INPUT -i tun+ -j ACCEPT
+
+    #Permitir que as conexões da interface TUN sejam encaminhadasa por meio de outras interfaces
+    iptables -A FORWARD -i tun+ -j ACCEPT
+    iptables -A FORWARD -i tun+ -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+    iptables -A FORWARD -i eth0 -o tun+ -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+    #NAT o tráfego do cliente VPN para a internet
+    iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+
+    #Se o valor padrão do OUTPUT do seu iptables não for ACCEPT, então esta linha é necessária
+    iptables -A OUTPUT -o tun+ -j ACCEPT
+
+}
+
+remove_iptables_rules () {
+    iptables -F INPUT
+    iptables -F OUTPUT
+    iptables -F FORWARD
+    iptables -F -t filter
+    iptables -F POSTROUTING -t nat
+    iptables -F PREROUTING -t nat
+    iptables -F OUTPUT -t nat
+    iptables -F -t nat
+    iptables -t nat -F
+    iptables -t mangle -F
+    iptables -X
+
+    iptables -Z
+    iptables -t nat -Z
+    iptables -t mangle -Z
+
+    iptables -P INPUT ACCEPT
+    iptables -P OUTPUT ACCEPT
+    iptables -P FORWARD ACCEPT
+
+}
+
 remove_open_vpn () {
         dialog --yesno 'Deseja realmente remover o OpenVPN?' 0 0
 
         if [ $? = 0 ]; then
-                PORT=$(grep '^port ' /etc/openvpn/server/server.conf | cut -d " " -f 2)
-                PROTOCOL=$(grep '^proto ' /etc/openvpn/server/server.conf | cut -d " " -f 2)
+                remove_iptables_rules
 
-                systemctl disable openvpn@server
-                systemctl stop openvpn@server
-
-                systemctl disable --now openvpn-iptables.service
-                rm -f /etc/systemd/system/openvpn-iptables.service
-
+                systemctl disable --now openvpn-server@server.service
                 rm -rf /etc/openvpn/server
                 rm -f /etc/systemd/system/openvpn-server@server.service.d/disable-limitnproc.conf
                 rm -f /etc/sysctl.d/30-openvpn-forward.conf
-
-                apt-get remove --purge -y openvpn
 
                 dialog --msgbox 'OpenVPN removido com sucesso' 5 40
 
@@ -255,29 +288,7 @@ crl-verify crl.pem" >> /etc/openvpn/server/server.conf
         echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/30-openvpn-forward.conf
         echo 1 > /proc/sys/net/ipv4/ip_forward
 
-        #Serviço para as regras de iptables
-        iptables_path=$(command -v iptables)
-
-
-        if [[ $(systemd-detect-virt) == "openvz" ]] && readlink -f "$(command -v iptables)" | grep -q "nft" && hash iptables-legacy 2>/dev/null; then
-                iptables_path=$(command -v iptables-legacy)
-        fi
-        echo "[Unit]
-Before=network.target
-[Service]
-Type=oneshot
-ExecStart=$iptables_path -t nat -A POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $ip
-ExecStart=$iptables_path -I INPUT -p $protocol --dport $port -j ACCEPT
-ExecStart=$iptables_path -I FORWARD -s 10.8.0.0/24 -j ACCEPT
-ExecStart=$iptables_path -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
-ExecStop=$iptables_path -t nat -D POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $ip
-ExecStop=$iptables_path -D INPUT -p $protocol --dport $port -j ACCEPT
-ExecStop=$iptables_path -D FORWARD -s 10.8.0.0/24 -j ACCEPT
-ExecStop=$iptables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" > /etc/systemd/system/openvpn-iptables.service
-         echo "RemainAfterExit=yes
-[Install]
-WantedBy=multi-user.target" >> /etc/systemd/system/openvpn-iptables.service
-                systemctl enable --now openvpn-iptables.service
+    add_iptables_rules
 
 
         [[ -n "$public_ip" ]] && ip="$public_ip"
