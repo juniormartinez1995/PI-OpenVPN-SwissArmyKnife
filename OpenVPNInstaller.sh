@@ -140,6 +140,26 @@ remove_iptables_rules () {
 
 }
 
+add_new_client () {
+
+            client=$( dialog --stdout --inputbox 'Nome:' 0 0 )
+    			
+            while [[ -z "$client" || -e /etc/openvpn/server/easy-rsa/pki/issued/"$client".crt ]]; do
+                client=$( dialog --stdout --inputbox 'Nome:' 0 0 )
+            done
+
+			cd /etc/openvpn/server/easy-rsa/
+			EASYRSA_CERT_EXPIRE=3650 ./easyrsa build-client-full "$client" nopass
+			new_client
+
+            dialog                                            \
+                --title 'Parabéns'                             \
+                --msgbox 'Cliente adicionado com sucesso'  \
+                6 40
+            
+            exit
+}
+
 remove_open_vpn () {
         dialog --yesno 'Deseja realmente remover o OpenVPN?' 0 0
 
@@ -158,6 +178,7 @@ remove_open_vpn () {
 
         fi
 }
+
 
 
 if [[ ! -e /etc/openvpn/server/server.conf ]]; then
@@ -318,7 +339,7 @@ else
 
         case $mChoice in
                 1)
-                        echo "add cliente"
+                        add_new_client
                         ;;
                 2)
                         echo "remover cliente"
